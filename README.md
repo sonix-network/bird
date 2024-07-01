@@ -7,7 +7,13 @@ If you have the funds, we recommend you contact CZ.NIC and purchase a [support p
 
 This repository builds a container image containg the latest BIRD release that is present in EPEL.
 
-It has four tags:
+**Example:**
+```
+$ podman run ghcr.io/sonix-network/bird:2 --version
+BIRD version 2.15.1
+```
+
+The image build uses four tag families:
  - `MAJOR` - e.g. `2`
  - `MAJOR.MINOR` - e.g. `2.15`
  - `vVERSION` - e.g. `v2.15.1-1`
