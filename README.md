@@ -1,5 +1,10 @@
 # Container builds for BIRD
 
+This is an **unofficial** channel, provided as-is without any warranty.
+If you have the funds, we recommend you contact CZ.NIC and purchase a [support plan](https://bird.network.cz/?support) to support their efforts.
+
+## Usage
+
 This repository builds a container image containg the latest BIRD release that is present in EPEL.
 
 It has four tags:
