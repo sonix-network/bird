@@ -28,9 +28,10 @@ RUN set -eux \
     && cd /usr/src/bird-${BIRD_VERSION}/ \
     && (for i in ../*.patch; do patch -p0 < $i; done) \
     && ./configure \
-        --prefix=/usr/ \
-        --sysconfdir=/etc/bird/ \
-        --localstatedir=/ \
+        --prefix=/usr \
+        --sysconfdir=/etc/bird \
+        --localstatedir=/var \
+        --runstatedir=/run/bird \
         --enable-libssh \
     && make -j $(nproc) \
     && make install \
