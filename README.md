@@ -3,15 +3,9 @@
 This is an **unofficial** channel, provided as-is without any warranty.
 If you have the funds, we recommend you contact CZ.NIC and purchase a [support plan](https://bird.network.cz/?support) to support their efforts.
 
-## Usage
+## Container images
 
 This repository builds a container image containg the latest BIRD release that is present in EPEL.
-
-**Example:**
-```
-$ podman run ghcr.io/sonix-network/bird:2 --version
-BIRD version 2.15.1
-```
 
 The image build uses four tag families:
  - `MAJOR` - e.g. `2`
@@ -20,6 +14,17 @@ The image build uses four tag families:
  - `latest`
 
 Use as you see fit.
+
+**NOTE:** There are also tags that start with `dev-` which contain patches not merged into a released BIRD version.
+These patches are used on SONIX, but we provide no guarantee nor recommend other teams to use those images.
+
+## Usage
+
+**Example:**
+```
+$ podman run ghcr.io/sonix-network/bird:2 --version
+BIRD version 2.15.1
+```
 
 Example Kubernetes pod definition:
 
