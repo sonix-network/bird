@@ -30,13 +30,21 @@ Example Kubernetes pod definition:
     image: ghcr.io/sonix-network/bird:2.15
     args:
       - '-f'
+      - '-u'
+      - '998'
       - '-c'
       - '/run/bird/bird.conf'
       - '-s'
       - '/run/bird/bird.ctl'
+      - '-P'
+      - '/run/bird/bird.pid'
     securityContext:
-      runAsUser: 998
-      allowPrivilegeEscalation: false
+      capabilities:
+        add:
+          - NET_ADMIN
+          - NET_BROADCAST
+          - NET_RAW
+          - NET_BIND_SERVICE
     volumeMounts:
     - mountPath: /run/bird/
       name: shared-volume
