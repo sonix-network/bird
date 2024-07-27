@@ -1,0 +1,67 @@
+From b84129c8b9cc1bc42119c1fc398183a3925125bd Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Sat, 27 Jul 2024 11:13:06 +0200
+Subject: [PATCH] IO: Avoid calling SO_BINDTODEVICE if not needed
+
+Since Linux 5.7 (see linux/c427bfec18f21) non-root users are allowed to
+bind a socket using SO_BINDTODEVICE as long as the socket is not already bound.
+
+When using BGP with VRFs, BIRD correctly binds the listening socket to
+the VRF but also re-binds the accept()'d socket to the same VRF.
+This is not needed as the interface bind is inherited in this case, and
+indeed this redundant bind causes an -EPERM if BIRD is running as non-root
+making BIRD close the connection and reject the peer.
+
+We change the behaviour of the generic sk_setup to first query the socket
+and see if the socket is already correctly bound, and call
+setsockopt(SO_BINDTODEVICE) iff it is truly needed. In addition,
+since the getsockopt(SO_BINDTODEVICE) was implemented in Linux 3.8 or
+otherwise might be blocked in existing installations, we quietly fall
+back to the previous behavior if the getsockopt call fails.
+
+Test case:
+ Run BIRD as a non-root user (and no extra capabilities) using passive
+ BGP inside a VRF. Before the patch observe the error:
+ "<ERR> SOCK: Incoming connection: SO_BINDTODEVICE: Operation not permitted"
+
+  protocol bgp AS1234_1 {
+    [..]
+    vrf "VrfTest";
+    passive on;
+  }
+
+ After the patch this works as expected.
+
+Signed-off-by: Christian Svensson <blue@cmd.nu>
+---
+ sysdep/unix/io.c | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/sysdep/unix/io.c b/sysdep/unix/io.c
+index ba2e1661..c329512f 100644
+--- a/sysdep/unix/io.c
++++ b/sysdep/unix/io.c
+@@ -977,9 +977,17 @@ sk_setup(sock *s)
+        This is Linux-specific, but so is SO_BINDTODEVICE. */
+ #ifdef SO_BINDTODEVICE
+     struct ifreq ifr = {};
+-    strcpy(ifr.ifr_name, s->vrf->name);
+-    if (setsockopt(s->fd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0)
+-      ERR("SO_BINDTODEVICE");
++    /* Re-binding a socket to another (or the same interface) is a high-privileged
++       action. Avoid doing that if the socket is already correctly bound. */
++    socklen_t len = sizeof(ifr.ifr_name);
++    /* getsockopt(SO_BINDTODEVICE) was implemented in Linux 3.8, if the call
++       fails ignore the error and just call setsockopt(SO_BINDTODEVICE). */
++    if (getsockopt(s->fd, SOL_SOCKET, SO_BINDTODEVICE, ifr.ifr_name, &len) < 0 ||
++        strcmp(ifr.ifr_name, s->vrf->name) != 0) {
++      strcpy(ifr.ifr_name, s->vrf->name);
++      if (setsockopt(s->fd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0)
++        ERR("SO_BINDTODEVICE");
++    }
+ #endif
+   }
+ 
+-- 
+2.45.2
+

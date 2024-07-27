@@ -26,7 +26,7 @@ RUN set -eux \
 ADD patches/*.patch /usr/src/
 RUN set -eux \
     && cd /usr/src/bird-${BIRD_VERSION}/ \
-    && (for i in ../*.patch; do patch -p0 < $i; done) \
+    && (for i in ../*.patch; do patch -p1 < $i; done) \
     && ./configure \
         --prefix=/usr \
         --sysconfdir=/etc/bird \
