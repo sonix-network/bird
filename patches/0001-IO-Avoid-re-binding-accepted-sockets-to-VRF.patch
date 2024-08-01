@@ -1,0 +1,38 @@
+From df22b3140cad6bd8742dce16e6a1b342d4a83f6d Mon Sep 17 00:00:00 2001
+From: Ondrej Zajicek <santiago@crfreenet.org>
+Date: Tue, 30 Jul 2024 16:33:51 +0200
+Subject: [PATCH] IO: Avoid re-binding accepted sockets to VRF
+
+When VRFs are used, BIRD correctly binds listening (and connecting)
+sockets to their VRFs but also re-binds accepted sockets to the same VRF.
+This is not needed as the interface bind is inherited in this case, and
+indeed this redundant bind causes an -EPERM if BIRD is running as
+non-root making BIRD close the connection and reject the peer.
+
+Thanks to Christian Svensson for the original patch and Alexander Zubkov
+for suggestions.
+---
+ sysdep/unix/io.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/sysdep/unix/io.c b/sysdep/unix/io.c
+index ba2e1661..987c7a6b 100644
+--- a/sysdep/unix/io.c
++++ b/sysdep/unix/io.c
+@@ -971,10 +971,11 @@ sk_setup(sock *s)
+   }
+ #endif
+ 
+-  if (s->vrf && !s->iface)
++  if (s->vrf && !s->iface && (s->type != SK_TCP))
+   {
+     /* Bind socket to associated VRF interface.
+-       This is Linux-specific, but so is SO_BINDTODEVICE. */
++       This is Linux-specific, but so is SO_BINDTODEVICE.
++       For accepted TCP sockets it is inherited from the listening one. */
+ #ifdef SO_BINDTODEVICE
+     struct ifreq ifr = {};
+     strcpy(ifr.ifr_name, s->vrf->name);
+-- 
+2.44.1
+
